@@ -47,26 +47,40 @@ backgrounds = [background_1['spec_sig_full_reduced'].T,
                background_2['spec_sig_full_reduced'].T,
                background_3['spec_sig_full_reduced'].T,
                background_4['spec_sig_full_reduced'].T]
+
+backgrounds_2 = [scipy.io.loadmat(f'background-spectra/b{i}.mat')['spec_sig_full_reduced'].T
+                 for i in range(1, 6)]
 # Resize the backgrounds to the correct grid
 for i, background in enumerate(backgrounds):
     backgrounds[i] = resize(wave_numbers_breath,
                             original_wave_numbers=wave_numbers_background,
                             original_covariates=background)
 
-#%% Generate a training set using the absorption spectra and backgrounds
-covariates, targets = gen_data_set(500, absorption_spectra_resized,
-                                   concentrations, backgrounds)
-X_train, X_test, Y_train, Y_test = train_test_split(covariates, targets,
-                                                    test_size=0.1, random_state=2)
+# Resize the backgrounds to the correct grid
+for i, background in enumerate(backgrounds_2):
+    backgrounds_2[i] = resize(wave_numbers_breath,
+                            original_wave_numbers=wave_numbers_background,
+                            original_covariates=background)
 
+#%% Generate a training set using the absorption spectra and backgrounds
+
+# Split the concentrations and absorptions for a train and test set:
+absorptions_train, absorptions_test, concentrations_train, concentrations_test = train_test_split(absorption_spectra_resized, concentrations,
+                                                                                                random_state=2, test_size=0.2)
+X_train, Y_train = gen_data_set(500, absorptions_train,
+                                   concentrations_train, backgrounds_2)
+
+X_test, Y_test = gen_data_set(100, absorptions_test,
+                                   concentrations_test, backgrounds)
 # Plot a newly simulated spectrum
-plt.plot(wave_numbers_breath, X_train[1])
-plt.show()
+for i in range(10):
+    plt.plot(wave_numbers_breath, X_train[i])
+    plt.show()
 
 #%% Fit a PLS model (possibly with background-correction).
 Model1 = Model(model=PLSRegression(n_components=50, scale=False),
                target_normalization=True,
-               baseline_correction=partial(airPLS, itermax=100, lambda_=25))
+               baseline_correction=minimum_correction)
 Model1.fit(X_train, Y_train)
 
 # Show performance. Right now a bit unfair since the training set does not have a good split.
