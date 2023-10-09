@@ -1,4 +1,5 @@
 import numpy as np
+import scipy
 from copy import deepcopy
 
 def minimum_correction(spectrum, width=100):
@@ -18,4 +19,9 @@ def zero_correction(spectrum):
     baseline = deepcopy(spectrum)
     for i, value in enumerate(spectrum):
         baseline[i] = np.min((0, value))
+    return baseline
+
+def SG_filter(spectrum, window_length, poly_order, deriv_order):
+    a = scipy.signal.savgol_filter(spectrum, window_length, poly_order, deriv=deriv_order, delta=1.0, axis=-1, mode='interp', cval=0.0)
+    baseline = spectrum - a
     return baseline
