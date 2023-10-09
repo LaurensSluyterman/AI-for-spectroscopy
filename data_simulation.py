@@ -65,11 +65,6 @@ def get_absorption_spectrum(transmission_spectrum, spectra_1, spectra_2=None,
                             size=None):
     """
     Combine a transmission spectrum and background spectrum(s) into absorption.
-    :param transmission_spectrum:
-    :param spectra_1:
-    :param spectra_2:
-    :param size:
-    :return:
     """
     # Resample
     new_spectra_1, new_spectra_2 = resample_spectra(spectra_1, spectra_2, size)
@@ -82,9 +77,30 @@ def get_absorption_spectrum(transmission_spectrum, spectra_1, spectra_2=None,
 
 
 def gen_data_set(N_samples, absorption_list, concentrations, background_list):
-    # todo: Add train/test split
-    # todo: Add absorption_resizing potentially?
-    # todo: Add assertions and exceptions.
+    """
+    Create a simulated data set.
+
+    This function creates N_samples absorbance spectra based on a list of
+    absorption spectra and corresponding concentrations and a list of backbround
+    intensity spectra.
+
+    Two background spectra are sampled at random. Subsequently, the
+    get_absorption_spectrum is used to combine these two background spectra and
+    the selected absorption spectrum to a new absorption spectrum. This
+    spectrum contains background drift due to the combination of the two
+    backgrounds and has other noise effect via bootstrapping.
+
+    Arguments:
+        N_samples (int): The number of generated absorbance spectra.
+        absorption_list: A list containing multiple simulated absorption spectra.
+        concentrations: A list containing the accompanying concentrations.
+        background_list: A list containing multiple background spectra.
+
+    Returns:
+        covariates: An array where each row is a newly simulated absorbance
+            spectrum.
+        targets: The concentrations corresponding to the covariates.
+    """
     covariates = np.zeros((N_samples, len(background_list[0][0])))
     targets = np.zeros((N_samples, len(concentrations[0])))
     for i in range(N_samples):
