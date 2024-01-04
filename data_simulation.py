@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from random import randint
 from utils import absorption_to_absorbance
 from sklearn.utils import resample
@@ -77,6 +78,7 @@ def get_absorption_spectrum(transmission_spectrum, spectra_1, spectra_2=None,
 
 
 def gen_data_set(N_samples, absorption_list, concentrations, background_list):
+    # todo: update this docstring to match new implementation
     """
     Create a simulated data set.
 
@@ -105,12 +107,9 @@ def gen_data_set(N_samples, absorption_list, concentrations, background_list):
     targets = np.zeros((N_samples, len(concentrations[0])))
     for i in range(N_samples):
         j = randint(0, len(concentrations) - 1)
-        index_1 = randint(0, len(background_list) - 1)
-        index_2 = randint(0, len(background_list) - 1)
-        spectra_1 = background_list[index_1]
-        spectra_2 = background_list[index_2]
-        if index_1 == index_2:
-            spectra_2 = None
+        indices = random.sample([i for i in range(len(background_list))], 2)
+        spectra_1 = background_list[indices[0]]
+        spectra_2 = background_list[indices[1]]
 
         absorption = get_absorption_spectrum(1 - absorption_list[j],
                                              spectra_1=spectra_1,
