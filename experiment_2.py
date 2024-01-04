@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import scipy
 import os
 from joblib import dump, load
@@ -56,7 +55,8 @@ X_test, Y_test = gen_data_set(200, absorptions_test,
 dump(X_train, './training_data/X_train.joblib')
 dump(Y_train, './training_data/Y_train.joblib')
 dump(X_test, './training_data/X_test.joblib')
-dump(X_test, './training_data/X_test .joblib')
+dump(Y_test, './training_data/Y_test.joblib')
+dump(labels, './training_data/labels.joblib')
 
 #%% How does the original model work with noise?
 Model_experiment_1 = load('./trained_models/experiment_1.joblib')
