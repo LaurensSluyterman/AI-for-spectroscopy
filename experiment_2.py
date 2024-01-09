@@ -58,6 +58,17 @@ dump(X_test, './training_data/X_test.joblib')
 dump(Y_test, './training_data/Y_test.joblib')
 dump(labels, './training_data/labels.joblib')
 
+np.savetxt('./training_data/X_train.txt', X_train, delimiter=',')
+np.savetxt('./training_data/Y_train.txt', Y_train, delimiter=',')
+np.savetxt('./training_data/X_test.txt', X_test, delimiter=',')
+np.savetxt('./training_data/Y_test.txt', Y_test, delimiter=',')
+np.savetxt('./training_data/labels.txt', labels, fmt='%s', delimiter=',')
+
+# X_train = load('./training_data/X_train.joblib')
+# Y_train = load('./training_data/Y_train.joblib')
+# X_test = load('./training_data/X_test.joblib')
+# Y_test = load('./training_data/Y_test.joblib')
+# labels =load('./training_data/labels.joblib')
 #%% How does the original model work with noise?
 Model_experiment_1 = load('./trained_models/experiment_1.joblib')
 predictions_model_1 = Model_experiment_1.predict(X_test)
