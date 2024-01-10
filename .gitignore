@@ -8,3 +8,4 @@
 .DS_Store
 .idea/
 /trained_models
+/calibration_measurements
