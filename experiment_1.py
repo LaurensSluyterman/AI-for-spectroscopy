@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from joblib import dump, load
 from sklearn.model_selection import train_test_split
 from sklearn.cross_decomposition import PLSRegression
@@ -38,3 +39,9 @@ concentrations_plot(Y_test, Y_pred, labels)
 # Save the model
 dump(Model1, './trained_models/experiment_1.joblib')
 # loaded_model = load('./trained_models/experiment_1.joblib')
+
+# Visualize the data
+plt.plot(small_grid, X_test[4])
+plt.ylabel('Absorbance')
+plt.xlabel('wave_number (cm-1)')
+plt.show()
