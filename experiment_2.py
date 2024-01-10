@@ -40,6 +40,7 @@ for i, background in enumerate(backgrounds):
                             original_covariates=background)
 
 
+# Make train/val/test split of the backgrounds and absorption/concentrations
 backgrounds_train, backgrounds_test = train_test_split(backgrounds, test_size=7, random_state=2)
 backgrounds_train, backgrounds_val = train_test_split(backgrounds_train, test_size=7, random_state=2)
 
@@ -51,15 +52,16 @@ absorptions_train, absorptions_val, concentrations_train, concentrations_val = t
                                                                                                   concentrations_train,
                                                                                                   random_state=2,
                                                                                                   test_size=150)
+# Create the final training/val/test sets
 np.random.seed(34)
-X_train, Y_train = gen_data_set(1500, absorptions_train,
-                                   concentrations_train, backgrounds_train)
+X_train, Y_train = gen_data_set(1500, absorptions_train, concentrations_train,
+                                backgrounds_train)
 
-X_val, Y_val = gen_data_set(500, absorptions_val,
-                                   concentrations_val, backgrounds_val)
+X_val, Y_val = gen_data_set(500, absorptions_val, concentrations_val,
+                            backgrounds_val)
 
-X_test, Y_test = gen_data_set(200, absorptions_test,
-                                   concentrations_test, backgrounds_test)
+X_test, Y_test = gen_data_set(200, absorptions_test, concentrations_test,
+                              backgrounds_test)
 
 #%% Saving the simulated data
 dump(X_train, './training_data/X_train.joblib')
@@ -72,14 +74,17 @@ dump(labels, './training_data/labels.joblib')
 
 np.savetxt('./training_data/X_train.txt', X_train, delimiter=',')
 np.savetxt('./training_data/Y_train.txt', Y_train, delimiter=',')
-np.savetxt('./training_data/X_test.txt', X_val, delimiter=',')
-np.savetxt('./training_data/Y_test.txt', Y_val, delimiter=',')
+np.savetxt('./training_data/X_val.txt', X_val, delimiter=',')
+np.savetxt('./training_data/Y_val.txt', Y_val, delimiter=',')
 np.savetxt('./training_data/X_test.txt', X_test, delimiter=',')
 np.savetxt('./training_data/Y_test.txt', Y_test, delimiter=',')
 np.savetxt('./training_data/labels.txt', labels, fmt='%s', delimiter=',')
 
+#%% Loading the simulated data
 # X_train = load('./training_data/X_train.joblib')
 # Y_train = load('./training_data/Y_train.joblib')
+# X_val = load('./training_data/X_val.joblib')
+# Y_val = load('./training_data/Y_val.joblib')
 # X_test = load('./training_data/X_test.joblib')
 # Y_test = load('./training_data/Y_test.joblib')
 # labels =load('./training_data/labels.joblib')
@@ -90,28 +95,13 @@ concentrations_plot(true_concentrations=Y_test, predictions=predictions_model_1,
                     labels=labels)
 
 
-#%% Now we add baseline correction
-Model_experiment_2_all_compounds = Model(model=PLSRegression(n_components=100, scale=False),
-                                         target_normalization=True,
-                                         baseline_correction=partial(SG_filter,
-                                         window_length=75, poly_order=2, deriv_order=2))
-
-Model_experiment_2_all_compounds.fit(X_train, Y_train)
-predicted_concentrations = Model_experiment_2_all_compounds.predict(X_test)
-concentrations_plot(true_concentrations=Y_test,
-                    predictions=predicted_concentrations,
-                    labels=labels)
-
-# Save the model and the predictions
-dump(Model_experiment_2_all_compounds, './trained_models/experiment_2_all_compounds.joblib')
-dump(predicted_concentrations, './results/experiment_2_predicted_concentrations')
-
-#%% Hyperparameter optimization
+#%% Now we add a baseline correction and hyper-parameter optimization
 Y_val_normalized = (Y_val - np.mean(Y_train, axis=0)) / np.std(Y_train, axis=0)
 best_score = 1e10
 component_options = [10, 15, 25, 50, 75, 100]
 length_options = [50, 75, 100, 125, 150, 175, 200]
 
+# Find optimal number of latent variables and optimal window length
 for i, n in enumerate(component_options):
     print(f'{i+1} of {len(component_options)}')
     for length in length_options:
@@ -131,12 +121,15 @@ for i, n in enumerate(component_options):
             best_n = n
             best_length = length
 
+# Fit the model using the optimal parameters
 Model_experiment_2_all_compounds = Model(model=PLSRegression(n_components=best_n, scale=False),
                                          target_normalization=True,
                                          baseline_correction=partial(SG_filter,
                                          window_length=best_length, poly_order=2, deriv_order=2))
 
 Model_experiment_2_all_compounds.fit(X_train, Y_train)
+
+# Evaluate the performance on an unseen test set
 predicted_concentrations = Model_experiment_2_all_compounds.predict(X_test)
 rmse_values = np.sqrt(np.mean(np.square(predicted_concentrations - Y_test), axis=0))
 np.sqrt(np.mean(np.square((predicted_concentrations - Y_test) / np.std(Y_train, axis=0))))
@@ -146,10 +139,15 @@ concentrations_plot(true_concentrations=Y_test,
                     predictions=predicted_concentrations,
                     labels=labels)
 
+# Save model and predictions on test set
+dump(Model_experiment_2_all_compounds, './trained_models/experiment_2_all_compounds.joblib')
+dump(predicted_concentrations, './results/experiment_2_predicted_concentrations')
+
 
 #%% Hyperparamter optimization if all we want is to have acetone correct
 best_score_acetone = 1e10
 
+# Find optimal number of latent variables and optimal window length
 for i, n in enumerate(component_options):
     print(f'{i + 1} of {len(component_options)}')
     for length in length_options:
@@ -161,6 +159,7 @@ for i, n in enumerate(component_options):
         predictions = test_model.predict(X_val)
         predictions_normalized = (test_model.predict(X_val) - np.mean(Y_train, axis=0)) / np.std(Y_train, axis=0)
         assert np.shape(predictions_normalized[:, 8]) == np.shape(Y_val_normalized[:, 8])
+        # Only the rmse of acetone is used
         score = np.sqrt(np.mean(np.square(predictions_normalized[:, 8] - Y_val_normalized[:, 8])))
         if score < best_score_acetone:
             print('Found new best:')
@@ -170,6 +169,7 @@ for i, n in enumerate(component_options):
             best_n_acetone = n
             best_length_acetone = length
 
+# Fit the model using the optimal hyperparameters
 Model_experiment_2_acetone = Model(model=PLSRegression(n_components=best_n_acetone, scale=False),
                                    target_normalization=True,
                                    baseline_correction=partial(SG_filter,
@@ -178,9 +178,15 @@ Model_experiment_2_acetone = Model(model=PLSRegression(n_components=best_n_aceto
                                                                deriv_order=2))
 
 Model_experiment_2_acetone.fit(X_train, Y_train)
-predicted_concentrations = Model_experiment_2_acetone.predict(X_test)
+
+# Evaluate the performance on an unseen test set
+predicted_concentrations_acetone = Model_experiment_2_acetone.predict(X_test)
 concentrations_plot(true_concentrations=Y_test,
-                    predictions=predicted_concentrations,
+                    predictions=predicted_concentrations_acetone,
                     labels=labels)
 
-np.sqrt(np.mean(np.square(predicted_concentrations[:, 8] - Y_test[:, 8])))
+np.sqrt(np.mean(np.square(predicted_concentrations_acetone[:, 8] - Y_test[:, 8])))
+
+# Save the model and the predictions on the test set
+dump(Model_experiment_2_acetone, './trained_models/experiment_2_acetone.joblib')
+dump(predicted_concentrations, './results/experiment_2_predicted_concentrations_acetone')
