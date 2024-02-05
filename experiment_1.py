@@ -26,11 +26,11 @@ Y = concentrations
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=2)
 
 #%% Saving the training and test data
-dump(X_train, './training_data_no_background/X_train.joblib')
-dump(Y_train, './training_data_no_background/Y_train.joblib')
-dump(X_test, './training_data_no_background/X_test.joblib')
-dump(Y_test, './training_data_no_background/Y_test.joblib')
-dump(labels, './training_data_no_background/labels.joblib')
+np.savetxt('./training_data_no_background/X_train.txt', X_train, delimiter=',')
+np.savetxt('./training_data_no_background/Y_train.txt', Y_train, delimiter=',')
+np.savetxt('./training_data_no_background/X_test.txt', X_test, delimiter=',')
+np.savetxt('./training_data_no_background/Y_test.txt', Y_test, delimiter=',')
+np.savetxt('./training_data_no_background/labels.txt', labels, fmt='%s', delimiter=',')
 
 #%% Fitting a basic PLS model
 Model1 = Model(model=PLSRegression(n_components=30, scale=False),
