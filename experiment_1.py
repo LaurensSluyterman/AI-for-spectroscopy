@@ -43,8 +43,9 @@ Model1.fit(X_train, Y_train)
 Y_pred = Model1.predict(X_test)
 concentrations_plot(Y_test, Y_pred, labels)
 
-# Save the model
+# Save the model and predictions
 dump(Model1, './trained_models/experiment_1.joblib')
+np.savetxt('./results/experiment_1_predictions.txt', Y_test, delimiter=',')
 # loaded_model = load('./trained_models/experiment_1.joblib')
 
 # Visualize the data
