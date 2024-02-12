@@ -81,13 +81,13 @@ np.savetxt('./training_data/Y_test.txt', Y_test, delimiter=',')
 np.savetxt('./training_data/labels.txt', labels, fmt='%s', delimiter=',')
 
 #%% Loading the simulated data
-# X_train = load('./training_data/X_train.joblib')
-# Y_train = load('./training_data/Y_train.joblib')
-# X_val = load('./training_data/X_val.joblib')
-# Y_val = load('./training_data/Y_val.joblib')
-# X_test = load('./training_data/X_test.joblib')
-# Y_test = load('./training_data/Y_test.joblib')
-# labels =load('./training_data/labels.joblib')
+X_train = load('./training_data/X_train.joblib')
+Y_train = load('./training_data/Y_train.joblib')
+X_val = load('./training_data/X_val.joblib')
+Y_val = load('./training_data/Y_val.joblib')
+X_test = load('./training_data/X_test.joblib')
+Y_test = load('./training_data/Y_test.joblib')
+labels = load('./training_data/labels.joblib')
 #%% How does the original model work with noise?
 Model_experiment_1 = load('./trained_models/experiment_1.joblib')
 predictions_model_1 = Model_experiment_1.predict(X_test)
@@ -142,8 +142,7 @@ concentrations_plot(true_concentrations=Y_test,
 # Save model and predictions on test set
 dump(Model_experiment_2_all_compounds, './trained_models/experiment_2_all_compounds.joblib')
 dump(predicted_concentrations, './results/experiment_2_predicted_concentrations')
-
-
+np.savetxt('./results/experiment_2_predicted_concentrations.txt', predicted_concentrations, delimiter=',')
 #%% Hyperparamter optimization if all we want is to have acetone correct
 best_score_acetone = 1e10
 
@@ -190,3 +189,56 @@ np.sqrt(np.mean(np.square(predicted_concentrations_acetone[:, 8] - Y_test[:, 8])
 # Save the model and the predictions on the test set
 dump(Model_experiment_2_acetone, './trained_models/experiment_2_acetone.joblib')
 dump(predicted_concentrations, './results/experiment_2_predicted_concentrations_acetone')
+
+
+model = load('./trained_models/experiment_2_acetone.joblib')
+squared_errors = np.square(model.predict(X_test)[:, 8] - Y_test[:, 8])
+water_values = Y_test[:, 3]
+plt.scatter(water_values, squared_errors)
+plt.xlabel('Water concentration')
+plt.ylabel('Squared error acetone')
+plt.show()
+#%% Train only on relevant grid and only for the relevant compound
+best_score_acetone = 1e10
+# Find optimal number of latent variables and optimal window length
+for i, n in enumerate(component_options):
+    print(f'{i + 1} of {len(component_options)}')
+    for length in length_options:
+        test_model = Model(model=PLSRegression(n_components=n, scale=False),
+                           target_normalization=True,
+                           baseline_correction=partial(SG_filter, window_length=length,
+                                                       poly_order=3, deriv_order=2))
+        test_model.fit(X_train[:, 2645:], Y_train[:, 8])
+        predictions = test_model.predict(X_val[:, 2645:])
+        assert np.shape(predictions) == np.shape(Y_val[:, 8:9])
+        # Only the rmse of acetone is used
+        score = np.sqrt(np.mean(np.square(predictions - Y_val[:, 8:9])))
+        if score < best_score_acetone:
+            print('Found new best:')
+            print(f'Components:{n}, Length:{length}, Score:{score}')
+            best_model_acetone = test_model
+            best_score_acetone = score
+            best_n_acetone = n
+            best_length_acetone = length
+
+# Fit the model using the optimal hyperparameters
+Model_experiment_2_acetone_range = Model(model=PLSRegression(n_components=best_n_acetone, scale=False),
+                                   target_normalization=True,
+                                   baseline_correction=partial(SG_filter,
+                                                               window_length=best_length_acetone,
+                                                               poly_order=3,
+                                                               deriv_order=2))
+
+Model_experiment_2_acetone_range.fit(X_train[:, 2645:], Y_train[:, 8])
+
+# Evaluate the performance on an unseen test set
+predicted_concentrations_acetone_range = Model_experiment_2_acetone_range.predict(X_test[:, 2645:])
+concentrations_plot(true_concentrations=Y_test,
+                    predictions=predicted_concentrations_acetone,
+                    labels=labels)
+
+np.sqrt(np.mean(np.square(predicted_concentrations_acetone_range - Y_test[:, 8:9])))
+
+# Save the model and the predictions on the test set
+dump(Model_experiment_2_acetone_range, './trained_models/experiment_2_acetone_range.joblib')
+dump(predicted_concentrations_range, './results/experiment_2_predicted_concentrations_acetone_range')
